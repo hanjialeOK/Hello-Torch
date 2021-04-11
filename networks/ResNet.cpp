@@ -2,14 +2,14 @@
 
 /* BottleNeck */
 
-BottleNeckImpl::BottleNeckImpl(int64_t inplanes, int64_t planes, int64_t stride_,
+BottleNeckImpl::BottleNeckImpl(int64_t inplanes, int64_t planes, int64_t stride,
     torch::nn::Sequential downsample_) : 
     downsample(downsample_),
     conv1(torch::nn::Conv2dOptions(inplanes, planes, 1)
             .stride(1).padding(0).bias(false)),
     bn1(planes),
     conv2(torch::nn::Conv2dOptions(planes, planes, 3)
-            .stride(stride_).padding(1).bias(false)),
+            .stride(stride).padding(1).bias(false)),
     bn2(planes),
     conv3(torch::nn::Conv2dOptions(planes, planes * expansion, 1)
             .stride(1).padding(0).bias(false)),
@@ -82,6 +82,8 @@ torch::Tensor ResNetImpl::forward(torch::Tensor x) {
     x = layer4->forward(x);
 
     x = torch::avg_pool2d(x, 7, 1);
+    // torch::nn::AvgPool2d model(torch::nn::AvgPool2dOptions(7).stride(1));
+    // x = model->forward(x);
     x = x.view({x.sizes()[0], -1});
     x = fc->forward(x);
 

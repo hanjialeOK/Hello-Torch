@@ -4,7 +4,7 @@
 class BottleNeckImpl : public torch::nn::Module {
 public:
     BottleNeckImpl(int64_t inplanes, int64_t planes, int64_t stride_ = 1,
-        torch::nn::Sequential downsample_ = nullptr);
+        torch::nn::Sequential downsample_ = torch::nn::Sequential());
     torch::Tensor forward(torch::Tensor x);
 private:
     // int64_t stride = 1;
@@ -34,10 +34,9 @@ private:
 	int64_t inplanes = 64; int groups = 1; int base_width = 64;
     torch::nn::Conv2d conv1;
     torch::nn::BatchNorm2d bn1;
-    torch::nn::Sequential layer1;
-    torch::nn::Sequential layer2;
-    torch::nn::Sequential layer3;
-    torch::nn::Sequential layer4;
+    torch::nn::Sequential layer1, layer2, layer3, layer4;
     torch::nn::Linear fc;
 };
 TORCH_MODULE(ResNet);
+
+ResNet resnet50();

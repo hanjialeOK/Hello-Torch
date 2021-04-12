@@ -1,4 +1,6 @@
 #include <torch/torch.h>
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
 #include "networks/ResNet.h"
@@ -55,10 +57,26 @@ int main() {
     // Net net(100);
     ResNet net = resnet50();
     net->to(device);
+    std::cout << "loading weights..." << std::endl;
+    torch::load(net, "../models/resnet50.pt");
+    std::cout << "weights have been loaded!" << std::endl;
     for (const auto& pair : net->named_parameters()) {
         // std::cout << pair.key() << ": " << pair.value() << std::endl;
-        std::cout << pair.key() << std::endl;
+        // std::cout << pair.key() << std::endl;
     }
-    torch::Tensor input = torch::randn({1, 3, 224, 224}, device);
-    std::cout << net->forward(input) << std::endl;
+
+    int input_size = 224;
+    cv::Mat origin_image;
+
+    origin_image = cv::imread("../images/1.jpg");
+    
+    cv::cvtColor(origin_image, origin_image, cv::COLOR_BGR2RGB);
+    cv::resize(origin_image, origin_image, cv::Size(input_size, input_size));
+
+    auto img_tensor = torch::from_blob(origin_image.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
+    img_tensor = img_tensor.permute({0,3,1,2});
+    img_tensor = img_tensor.toType(torch::kFloat);
+    img_tensor = img_tensor.div(255.0);
+
+    std::cout << net->forward(img_tensor) << std::endl;
 }

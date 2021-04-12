@@ -66,17 +66,19 @@ int main() {
     }
 
     int input_size = 224;
-    cv::Mat origin_image;
+    cv::Mat img;
 
-    origin_image = cv::imread("../images/1.jpg");
-    
-    cv::cvtColor(origin_image, origin_image, cv::COLOR_BGR2RGB);
-    cv::resize(origin_image, origin_image, cv::Size(input_size, input_size));
+    img = cv::imread("../images/1.jpg");
 
-    auto img_tensor = torch::from_blob(origin_image.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
+    cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
+    cv::resize(img, img, cv::Size(input_size, input_size));
+
+    auto img_tensor = torch::from_blob(img.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
     img_tensor = img_tensor.permute({0,3,1,2});
     img_tensor = img_tensor.toType(torch::kFloat);
     img_tensor = img_tensor.div(255.0);
 
     std::cout << net->forward(img_tensor) << std::endl;
+
+    return 0;
 }

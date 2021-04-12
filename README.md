@@ -23,3 +23,19 @@ mkdir build && cd build
 cmake ..
 make
 ```
+
+## Generate pre_trained weights
+
+```c
+import torch
+from torchvision.models import resnet50
+
+model = resnet50(pretrained=True)
+model = model.cuda()
+model.eval()
+// for k, v in model.named_parameters() : print(k)
+var = torch.ones((1, 3, 224, 224))
+var = var.cuda()
+traced_script_module = torch.jit.trace(model, var)
+traced_script_module.save("resnet50.pt")
+```

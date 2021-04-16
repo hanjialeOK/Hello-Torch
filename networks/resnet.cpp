@@ -1,4 +1,4 @@
-#include "ResNet.h"
+#include "resnet.h"
 
 /* BottleNeck */
 

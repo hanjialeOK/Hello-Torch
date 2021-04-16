@@ -3,7 +3,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
-#include "networks/ResNet.h"
+#include "networks/resnet.h"
 
 struct NetImpl : torch::nn::Module {
     NetImpl(int k) : 

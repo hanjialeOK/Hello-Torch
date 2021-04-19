@@ -3,7 +3,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 
-#include "networks/resnet.h"
+#include "networks/deeplab_resnet.h"
 
 struct NetImpl : torch::nn::Module {
     NetImpl(int k) : 
@@ -60,9 +60,16 @@ int main() {
     std::cout << "loading weights..." << std::endl;
     torch::load(net, "../models/resnet50.pt");
     std::cout << "weights have been loaded!" << std::endl;
+
+    for (const auto& p : net->parameters()) {
+        // std::cout << p << std::endl;
+        // p.requires_grad() = false;
+        // p.set_requires_grad(false);
+        // p.requires_grad_(false);
+    }
     for (const auto& pair : net->named_parameters()) {
         // std::cout << pair.key() << ": " << pair.value() << std::endl;
-        // std::cout << pair.key() << std::endl;
+        std::cout << pair.key() << " " << pair.value().requires_grad() << std::endl;
     }
 
     int input_size = 224;
@@ -73,12 +80,13 @@ int main() {
     cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
     cv::resize(img, img, cv::Size(input_size, input_size));
 
+    // auto img_tensor = torch::from_blob(img.data, {1, img.cols, img.rows, 3}, torch::kByte).to(device);
     auto img_tensor = torch::from_blob(img.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
     img_tensor = img_tensor.permute({0,3,1,2});
     img_tensor = img_tensor.toType(torch::kFloat);
     img_tensor = img_tensor.div(255.0);
 
-    std::cout << net->forward(img_tensor) << std::endl;
+    // std::cout << net->forward(img_tensor) << std::endl;
 
     return 0;
 }

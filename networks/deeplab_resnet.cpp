@@ -82,27 +82,31 @@ ResNetImpl::ResNetImpl(std::vector<int> layers, int num_classes) :
     register_module("layer3", layer3);
     register_module("layer4", layer4);
 
-    // for m in self.modules():
-    //     if isinstance(m, nn.Conv2d):
-    //         n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-    //         m.weight.data.normal_(0, 0.01)
-    //     elif isinstance(m, nn.BatchNorm2d):
-    //         m.weight.data.fill_(1)
-    //         m.bias.data.zero_()
-
+    /* 1. actually, this method is to initilize weights, which is unuseful if you train with a pre_trained weight.
+     * 2. "&as<>()" could convert nn::module to nn::Conv2d, I got this funtion from module.h.
+     */
     // for(const auto& m : this->modules(/*include_self=*/false)) {
-    //     // std::cout << m->name() << std::endl;
     //     if(m->as<torch::nn::Conv2d>() != nullptr) {
-    //         // a leaf Variable that requires grad is being used in an in-place operation.
-    //         // m->parameters()[0].normal_(0, 0.01);
+    //         /* a leaf Variable that requires grad is being used in an in-place operation. */
     //         // std::cout << m->name() << " " << m->parameters().size() << std::endl;
+    //         // m->parameters()[0].normal_(0, 0.01);
     //     }
     //     else if(m->as<torch::nn::BatchNorm2d>() != nullptr) {
-    //         m->parameters()[0].fill_(1);
-    //         m->parameters()[1].zero_();
     //         // std::cout << m->name() << " " << m->parameters().size() << std::endl;
+    //         m->parameters()[0].fill_(1); /* weight */
+    //         m->parameters()[1].zero_(); /* bias */
     //     }
     // }
+    for(const auto& m : this->modules(/*include_self=*/false)) {
+        if(auto* conv = m->as<torch::nn::Conv2d>()) {
+            /* a leaf Variable that requires grad is being used in an in-place operation. */
+            // conv->weight.normal_(0, 0.01);
+        }
+        else if(auto* bn = m->as<torch::nn::BatchNorm2d>()) {
+            bn->weight.fill_(1);
+            bn->bias.zero_();
+        }
+    }
 }
 
 torch::Tensor ResNetImpl::forward(torch::Tensor x) {

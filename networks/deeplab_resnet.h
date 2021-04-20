@@ -34,7 +34,7 @@ private:
     torch::nn::Conv2d conv1;
     torch::nn::BatchNorm2d bn1;
     torch::nn::Sequential layer1, layer2, layer3, layer4;
-    torch::nn::Linear fc;
+    // torch::nn::Linear fc;
 };
 TORCH_MODULE(ResNet);
 

@@ -58,13 +58,11 @@ int main() {
     ResNet net = resnet50();
     net->to(device);
     std::cout << "loading weights..." << std::endl;
-    torch::load(net, "../models/resnet50.pt");
+    torch::load(net, "../models/resnet50_caffe.pt");
     std::cout << "weights have been loaded!" << std::endl;
+    net->eval();
 
     for (const auto& p : net->parameters()) {
-        // std::cout << p << std::endl;
-        // p.requires_grad() = false;
-        // p.set_requires_grad(false);
         // p.requires_grad_(false);
     }
     for (const auto& pair : net->named_parameters()) {
@@ -81,12 +79,15 @@ int main() {
     cv::resize(img, img, cv::Size(input_size, input_size));
 
     // auto img_tensor = torch::from_blob(img.data, {1, img.cols, img.rows, 3}, torch::kByte).to(device);
-    auto img_tensor = torch::from_blob(img.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
-    img_tensor = img_tensor.permute({0,3,1,2});
-    img_tensor = img_tensor.toType(torch::kFloat);
-    img_tensor = img_tensor.div(255.0);
+    // auto img_tensor = torch::from_blob(img.data, {1, input_size, input_size, 3}, torch::kByte).to(device);
+    // img_tensor = img_tensor.permute({0,3,1,2});
+    // img_tensor = img_tensor.toType(torch::kFloat);
+    // img_tensor = img_tensor.div(255.0);
+    auto img_tensor = torch::ones({1, 3, 224, 224}, torch::kFloat).to(device);
 
-    // std::cout << net->forward(img_tensor) << std::endl;
+    auto out = net->forward(img_tensor);
+
+    std::cout << out[0][2000] << std::endl;
 
     return 0;
 }

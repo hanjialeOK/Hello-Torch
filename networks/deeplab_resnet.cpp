@@ -82,9 +82,10 @@ ResNetImpl::ResNetImpl(std::vector<int> layers, int num_classes) :
     register_module("layer3", layer3);
     register_module("layer4", layer4);
 
-    /* 1. actually, this method is to initilize weights, which is unuseful if you train with a pre_trained weight.
+    /**
+     * 1. actually, this method is to initilize weights, which is unuseful if you train with a pre_trained weight.
      * 2. "&as<>()" could convert nn::module to nn::Conv2d, I got this funtion from module.h.
-     */
+     **/
     // for(const auto& m : this->modules(/*include_self=*/false)) {
     //     if(m->as<torch::nn::Conv2d>() != nullptr) {
     //         /* a leaf Variable that requires grad is being used in an in-place operation. */
@@ -127,7 +128,6 @@ torch::Tensor ResNetImpl::forward(torch::Tensor x) {
 
 torch::nn::Sequential ResNetImpl::_make_layer(int64_t planes, int64_t blocks, int64_t stride, int64_t dilation) {
     torch::nn::Sequential downsample;
-    // int expansion = BottleNeck::expansion;
     if (stride != 1 || inplanes != planes * expansion || dilation == 2 || dilation == 4) {
         downsample = torch::nn::Sequential(
             torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/planes * expansion, /*kernel_size=*/1)
@@ -149,6 +149,6 @@ torch::nn::Sequential ResNetImpl::_make_layer(int64_t planes, int64_t blocks, in
 }
 
 ResNet resnet50(){
-    ResNet model(std::vector<int>{3, 4, 6, 3});
+    ResNet model(std::vector<int>{1, 1, 1, 1});
     return model;
 }

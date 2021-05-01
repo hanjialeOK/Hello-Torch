@@ -8,12 +8,8 @@ public:
     torch::Tensor forward(torch::Tensor x);
 private:
     torch::nn::Sequential downsample;
-    torch::nn::Conv2d conv1;
-    torch::nn::BatchNorm2d bn1;
-    torch::nn::Conv2d conv2;
-    torch::nn::BatchNorm2d bn2;
-    torch::nn::Conv2d conv3;
-    torch::nn::BatchNorm2d bn3;
+    torch::nn::Conv2d conv1,conv2, conv3;
+    torch::nn::BatchNorm2d bn1, bn2, bn3;
 };
 TORCH_MODULE(BottleNeck);
 
@@ -34,7 +30,6 @@ private:
     torch::nn::Conv2d conv1;
     torch::nn::BatchNorm2d bn1;
     torch::nn::Sequential layer1, layer2, layer3, layer4;
-    // torch::nn::Linear fc;
 };
 TORCH_MODULE(ResNet);
 

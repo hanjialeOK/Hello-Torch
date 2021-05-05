@@ -62,7 +62,7 @@ torch::Tensor BottleNeckImpl::forward(torch::Tensor x) {
 }
 
 /* ResNet */
-ResNetImpl::ResNetImpl(std::vector<int> layers) : 
+ResNetImpl::ResNetImpl(int layers[]) : 
     conv1(torch::nn::Conv2dOptions(/*in_channels=*/3, /*out_channels=*/64, /*kernal_size=*/7)
             .stride(2).padding(3).bias(false)),
     bn1(torch::nn::BatchNorm2dOptions(64).affine(true)),
@@ -154,7 +154,7 @@ torch::nn::Sequential ResNetImpl::_make_layer(int64_t planes, int64_t blocks, in
 }
 
 /* ResNet_locate */
-ResNet_locateImpl::ResNet_locateImpl(std::vector<int> layers) : 
+ResNet_locateImpl::ResNet_locateImpl(int layers[]) : 
     resnet(layers),
     ppms_pre(torch::nn::Conv2dOptions(/*in_channels=*/2048, /*out_channels=*/512, /*kernal_size=*/1)
             .stride(1).padding(0).bias(false)),
@@ -204,10 +204,19 @@ torch::nn::ModuleList ResNet_locateImpl::_make_modulelist_infos() {
 torch::Tensor ResNet_locateImpl::forward(torch::Tensor x) {
     auto tmp_x = resnet->forward(x);
     auto y = ppms_pre->forward(tmp_x.back());
-    return y;
+    std::vector<torch::Tensor> xls{ y };
+    for(int i = 0; i < 3; i++) {
+        xls.push_back(torch::nn::functional::interpolate(ppms[i]->as<torch::nn::Sequential>()->forward(y), 
+                        torch::nn::functional::InterpolateFuncOptions().size(std::vector<int64_t>({y.size(2), y.size(3)}))
+                            .mode(torch::kBilinear).align_corners(true))
+        );
+    }
+    auto z = ppms_cat->forward(torch::cat(/*TensorList=*/xls, /*dim=*/1));
+    return z;
 }
 
 ResNet_locate resnet50() {
-    ResNet_locate model(std::vector<int>{1, 1, 1, 1});
+    int layers[] = {3, 4, 6, 3};
+    ResNet_locate model(layers);
     return model;
 }

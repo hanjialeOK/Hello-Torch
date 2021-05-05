@@ -178,7 +178,7 @@ torch::nn::ModuleList ResNet_locateImpl::_make_modulelist_ppms() {
     torch::nn::ModuleList list;
     for(int i = 1; i <= 5; i += 2) {
         list->push_back(torch::nn::Sequential(
-            torch::nn::(torch::nn::AdaptiveAvgPoolOptions(/*output_size=*/i)),
+            torch::nn::AdaptiveAvgPool2d(torch::nn::AdaptiveAvgPool2dOptions(/*output_size=*/i)),
             torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/inplanes, /*kernel_size=*/1)
                                 .stride(1).padding(0).bias(false)),
             torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))

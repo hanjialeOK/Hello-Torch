@@ -18,7 +18,7 @@ const int64_t expansion = 4;
 // template <class Block>
 class ResNetImpl : public torch::nn::Module {
 public:
-    ResNetImpl(int layers[]);
+    ResNetImpl(std::vector<int> layers);
     std::vector<torch::Tensor> forward(torch::Tensor x);
     // std::vector<torch::Tensor> features(torch::Tensor x, int encoder_depth = 5);
     torch::nn::Sequential _make_layer(int64_t planes, int64_t blocks, int64_t stride = 1, int64_t dilation = 1);
@@ -35,8 +35,8 @@ TORCH_MODULE(ResNet);
 
 class ResNet_locateImpl : public torch::nn::Module {
 public:
-    ResNet_locateImpl(int layers[]);
-    torch::Tensor forward(torch::Tensor x);
+    ResNet_locateImpl(std::vector<int> layers);
+    std::pair<const std::vector<torch::Tensor>&, const std::vector<torch::Tensor>&> forward(torch::Tensor x);
     torch::nn::ModuleList _make_modulelist_ppms();
     torch::nn::ModuleList _make_modulelist_infos();
 private:
@@ -44,9 +44,8 @@ private:
     int64_t planes[4] = { 512, 256, 256, 128 };
     ResNet resnet;
     torch::nn::Conv2d ppms_pre;
-    torch::nn::ModuleList ppms;
+    torch::nn::ModuleList ppms, infos;
     torch::nn::Sequential ppms_cat;
-    torch::nn::ModuleList infos;
 };
 TORCH_MODULE(ResNet_locate);
 

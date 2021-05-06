@@ -99,12 +99,11 @@ ResNetImpl::ResNetImpl(std::vector<int> layers) :
     // }
     for(const auto& m : this->modules(/*include_self=*/false)) {
         if(auto* conv = m->as<torch::nn::Conv2d>()) {
-            /* a leaf Variable that requires grad is being used in an in-place operation. */
-            // conv->weight.normal_(0, 0.01);
+            conv->weight.data().normal_(0, 0.01);
         }
         else if(auto* bn = m->as<torch::nn::BatchNorm2d>()) {
-            bn->weight.fill_(1);
-            bn->bias.zero_();
+            bn->weight.data().fill_(1);
+            bn->bias.data().zero_();
         }
     }
 }

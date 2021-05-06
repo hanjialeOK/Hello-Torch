@@ -3,9 +3,12 @@
 #include "deeplab_resnet.h"
 
 /* BottleNeck */
-
-BottleNeckImpl::BottleNeckImpl(int64_t inplanes, int64_t planes, int64_t stride, int64_t dilation,
+BottleNeckImpl::BottleNeckImpl(int64_t inplanes_, int64_t planes_, int64_t stride_, int64_t dilation_,
     torch::nn::Sequential downsample_) : 
+    inplanes(inplanes_),
+    planes(planes_),
+    stride(stride_),
+    dilation(dilation_),
     downsample(downsample_),
     conv1(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/planes, /*kernal_size=*/1)
             .stride(stride).padding(0).bias(false)),
@@ -81,22 +84,7 @@ ResNetImpl::ResNetImpl(std::vector<int> layers) :
     register_module("layer3", layer3);
     register_module("layer4", layer4);
 
-    /**
-     * 1. actually, this method is to initilize weights, which is unuseful if you train with a pre_trained weight.
-     * 2. "&as<>()" could convert nn::module to nn::Conv2d, I got this funtion from module.h.
-     **/
-    // for(const auto& m : this->modules(/*include_self=*/false)) {
-    //     if(m->as<torch::nn::Conv2d>() != nullptr) {
-    //         /* a leaf Variable that requires grad is being used in an in-place operation. */
-    //         // std::cout << m->name() << " " << m->parameters().size() << std::endl;
-    //         // m->parameters()[0].normal_(0, 0.01);
-    //     }
-    //     else if(m->as<torch::nn::BatchNorm2d>() != nullptr) {
-    //         // std::cout << m->name() << " " << m->parameters().size() << std::endl;
-    //         m->parameters()[0].fill_(1); /* weight */
-    //         m->parameters()[1].zero_(); /* bias */
-    //     }
-    // }
+    /* Initilize weights */
     for(const auto& m : this->modules(/*include_self=*/false)) {
         if(auto* conv = m->as<torch::nn::Conv2d>()) {
             conv->weight.data().normal_(0, 0.01);
@@ -114,9 +102,8 @@ std::vector<torch::Tensor> ResNetImpl::forward(torch::Tensor x) {
     x = bn1->forward(x);
     x = torch::relu(x);
     tmp_x.push_back(x);
-    x = torch::max_pool2d(/*tensor=*/x, /*kernel_size=*/3, /*stride=*/2, /*padding=*/1, /*dilation=*/1, /*ceil_mode=*/true);
-    // torch::nn::MaxPool2d pool(torch::nn::MaxPool2dOptions(3).stride(2).padding(1).ceil_mode(true));
-    // x = pool->forward(x);
+    x = torch::max_pool2d(/*tensor=*/x, /*kernel_size=*/3, /*stride=*/2, \
+                        /*padding=*/1, /*dilation=*/1, /*ceil_mode=*/true);
 
     x = layer1->forward(x);
     tmp_x.push_back(x);
@@ -139,7 +126,7 @@ torch::nn::Sequential ResNetImpl::_make_layer(int64_t planes, int64_t blocks, in
             torch::nn::BatchNorm2d(torch::nn::BatchNorm2dOptions(planes * expansion).affine(true))
         );
     }
-    for(const auto& p : downsample->ptr(1)->parameters()) {
+    for(const auto& p : downsample[1]->parameters()) {
         p.requires_grad_(false);
     }
     torch::nn::Sequential layers;
@@ -155,76 +142,87 @@ torch::nn::Sequential ResNetImpl::_make_layer(int64_t planes, int64_t blocks, in
 /* ResNet_locate */
 ResNet_locateImpl::ResNet_locateImpl(std::vector<int> layers) : 
     resnet(layers),
-    ppms_pre(torch::nn::Conv2dOptions(/*in_channels=*/2048, /*out_channels=*/512, /*kernal_size=*/1)
+    ppms_pre(torch::nn::Conv2dOptions(/*in_channels=*/2048, /*out_channels=*/inplanes, /*kernal_size=*/1)
             .stride(1).padding(0).bias(false)),
-    ppms(_make_modulelist_ppms()),
-    ppms_cat(torch::nn::Sequential(
-            torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/2048, /*out_channels=*/512, /*kernel_size=*/3)
+    ppms(_make_ppms_layer()),
+    ppm_cat(torch::nn::Sequential(
+                torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/2048, /*out_channels=*/inplanes, /*kernel_size=*/3)
                                 .stride(1).padding(1).bias(false)),
-            torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
+                torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
             )
         ),
-    infos(_make_modulelist_infos())
+    infos(_make_infos_layer())
 {
     register_module("resnet", resnet);
     register_module("ppms_pre", ppms_pre);
     register_module("ppms", ppms);
-    register_module("ppms_cat", ppms_cat);
+    register_module("ppm_cat", ppm_cat);
     register_module("infos", infos);
 }
 
-torch::nn::ModuleList ResNet_locateImpl::_make_modulelist_ppms() {
+torch::nn::ModuleList ResNet_locateImpl::_make_ppms_layer() {
     torch::nn::ModuleList list;
-    for(int i = 1; i <= 5; i += 2) {
-        list->push_back(torch::nn::Sequential(
-            torch::nn::AdaptiveAvgPool2d(torch::nn::AdaptiveAvgPool2dOptions(/*output_size=*/i)),
-            torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/inplanes, /*kernel_size=*/1)
+    for(const auto i : pool_sizes) {
+        list->push_back(
+            torch::nn::Sequential(
+                torch::nn::AdaptiveAvgPool2d(torch::nn::AdaptiveAvgPool2dOptions(/*output_size=*/i)),
+                torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/inplanes, /*kernel_size=*/1)
                                 .stride(1).padding(0).bias(false)),
-            torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
+                torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
             )
         );
     }
     return list;
 }
 
-torch::nn::ModuleList ResNet_locateImpl::_make_modulelist_infos() {
+torch::nn::ModuleList ResNet_locateImpl::_make_infos_layer() {
     torch::nn::ModuleList list;
-    for(int i = 0; i < 4; i++) {
-        list->push_back(torch::nn::Sequential(
-            torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/planes[i], /*kernel_size=*/3)
+    for(const auto planes : planes_list) {
+        list->push_back(
+            torch::nn::Sequential(
+                torch::nn::Conv2d(torch::nn::Conv2dOptions(/*in_channels=*/inplanes, /*out_channels=*/planes, /*kernel_size=*/3)
                                 .stride(1).padding(1).bias(false)),
-            torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
+                torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true))
             )
         );
     }
     return list;
 }
 
-std::pair<const std::vector<torch::Tensor>&, const std::vector<torch::Tensor>&> ResNet_locateImpl::forward(torch::Tensor x) {
+std::pair<std::vector<torch::Tensor>, std::vector<torch::Tensor>> ResNet_locateImpl::forward(torch::Tensor x) {
     std::vector<torch::Tensor> tmp_x = resnet->forward(x);
+    /* y.sizes() : { 1, 512, 24, 32 } */
     auto y = ppms_pre->forward(tmp_x.back());
 
     std::vector<torch::Tensor> xls{ y };
     for(int i = 0; i < ppms->size(); i++) {
-        xls.push_back(torch::nn::functional::interpolate(ppms[i]->as<torch::nn::Sequential>()->forward(y), 
-                        torch::nn::functional::InterpolateFuncOptions().size(std::vector<int64_t>({y.size(2), y.size(3)}))
-                            .mode(torch::kBilinear).align_corners(true))
+        xls.push_back(
+            torch::nn::functional::interpolate(
+                /*input=*/ppms[i]->as<torch::nn::Sequential>()->forward(y), 
+                /*options=*/torch::nn::functional::InterpolateFuncOptions().size(std::vector<int64_t>({y.size(2), y.size(3)}))
+                    .mode(torch::kBilinear).align_corners(true)
+            )
         );
     }
-    auto z = ppms_cat->forward(torch::cat(/*TensorList=*/xls, /*dim=*/1));
+    /* z.sizes() : { 1, 2048, 24, 32 } */
+    auto z = ppm_cat->forward(torch::cat(/*TensorList=*/xls, /*dim=*/1));
 
     std::vector<torch::Tensor> infos_out;
     for(int i = 0; i < infos->size(); i++) {
-        auto tmp_el = tmp_x[infos->size() - 1 - i];
-        infos_out.push_back(infos[i]->as<torch::nn::Sequential>()->forward(
-            torch::nn::functional::interpolate(z, 
-                torch::nn::functional::InterpolateFuncOptions().size(std::vector<int64_t>({tmp_el.size(2), tmp_el.size(3)}))
-                    .mode(torch::kBilinear).align_corners(true))
+        auto size = tmp_x[infos->size() - 1 - i].sizes();
+        infos_out.push_back(
+            infos[i]->as<torch::nn::Sequential>()->forward(
+                torch::nn::functional::interpolate(
+                    /*input=*/z, 
+                    /*options=*/torch::nn::functional::InterpolateFuncOptions().size(std::vector<int64_t>({size[2], size[3]}))
+                        .mode(torch::kBilinear).align_corners(true)
+                )
             )
         );
     }
     return std::make_pair(tmp_x, infos_out);
 }
+
 ResNet_locate resnet50() {
     ResNet_locate model(std::vector<int>{ 3, 4, 6, 3 });
     return model;

@@ -40,7 +40,8 @@ TORCH_MODULE(ResNet);
 class ResNet_locateImpl : public torch::nn::Module {
 public:
     ResNet_locateImpl(std::vector<int> layers);
-    std::pair<std::vector<torch::Tensor>, std::vector<torch::Tensor>> forward(torch::Tensor x);
+    std::pair<std::vector<torch::Tensor>, std::vector<torch::Tensor>> 
+        forward(torch::Tensor x);
     torch::nn::ModuleList _make_ppms_layer();
     torch::nn::ModuleList _make_infos_layer();
 private:

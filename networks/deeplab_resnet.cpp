@@ -24,8 +24,7 @@ BottleNeckImpl::BottleNeckImpl(int64_t inplanes_, int64_t planes_, int64_t strid
                                      /*out_channels=*/planes * expansion, 
                                      /*kernal_size=*/ 1)
                                      .stride(1).padding(0).bias(false)),
-      bn3(torch::nn::BatchNorm2dOptions(planes * expansion).affine(true))
-{
+      bn3(torch::nn::BatchNorm2dOptions(planes * expansion).affine(true)) {
     register_module("conv1", conv1);
     register_module("bn1", bn1);
     for (const auto& p : bn1->parameters()) {
@@ -80,8 +79,7 @@ ResNetImpl::ResNetImpl(std::vector<int> layers)
       layer1(_make_layer(/*planes=*/64,  /*blocks=*/layers[0])),
       layer2(_make_layer(/*planes=*/128, /*blocks=*/layers[1], /*stride=*/2)),
       layer3(_make_layer(/*planes=*/256, /*blocks=*/layers[2], /*stride=*/2)),
-      layer4(_make_layer(/*planes=*/512, /*blocks=*/layers[3], /*stride=*/1, /*dilation=*/2))
-{
+      layer4(_make_layer(/*planes=*/512, /*blocks=*/layers[3], /*stride=*/1, /*dilation=*/2)) {
     register_module("conv1", conv1);
     register_module("bn1", bn1);
     for (const auto& p : bn1->parameters()) {
@@ -167,8 +165,7 @@ ResNet_locateImpl::ResNet_locateImpl(std::vector<int> layers)
                   /*kernel_size=*/ 3)
                   .stride(1).padding(1).bias(false)),
               torch::nn::ReLU(torch::nn::ReLUOptions(/*inplace=*/true)))),
-      infos(_make_infos_layer())
-{
+      infos(_make_infos_layer()) {
     register_module("resnet", resnet);
     register_module("ppms_pre", ppms_pre);
     register_module("ppms", ppms);

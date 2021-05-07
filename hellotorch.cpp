@@ -1,11 +1,12 @@
-#include <torch/torch.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <iostream>
-#include <chrono>
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+
+#include <iostream>
+#include <chrono>
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "networks/poolnet.h"
 

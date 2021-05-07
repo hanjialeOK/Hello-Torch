@@ -1,9 +1,6 @@
 #ifndef POOLNET_H_
 #define POOLNET_H_
 
-#include<torch/script.h>
-#include<torch/torch.h>
-
 #include "deeplab_resnet.h"
 
 /* ConvertLayer */

@@ -1,14 +1,15 @@
-#include <torch/torch.h>
-#include <torch/script.h>
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <iostream>
-#include <chrono>
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
 
+#include <iostream>
+#include <chrono>
+
+#include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <cuda_runtime.h>
+
+#include "networks/poolnet.h"
 
 int main() {
     torch::Device device = torch::kCPU;

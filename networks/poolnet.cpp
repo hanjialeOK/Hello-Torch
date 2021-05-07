@@ -1,6 +1,6 @@
-#include <iostream>
-
 #include "poolnet.h"
+
+#include <iostream>
 
 /* ConvertLayer */
 ConvertLayerImpl::ConvertLayerImpl()

@@ -1,6 +1,6 @@
-#include <iostream>
-
 #include "deeplab_resnet.h"
+
+#include <iostream>
 
 /* BottleNeck */
 BottleNeckImpl::BottleNeckImpl(int64_t inplanes_, int64_t planes_, int64_t stride_, 
